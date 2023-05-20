@@ -12,6 +12,7 @@ import com.itheima.reggie.utils.ValidateCodeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +34,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
 
     /**
      * 用户登入
@@ -53,10 +57,10 @@ public class UserController {
         }
 
         // 【1】旧版本(优化前)
-        Object codeSeesion = httpSession.getAttribute(phone);
+//        Object codeSeesion = httpSession.getAttribute(phone);
 
         // 【2】 优化后
-//        Object codeSeesion = redisTemplate.opsForValue().get(phone);
+        Object codeSeesion = redisTemplate.opsForValue().get(phone);
         //进行验证码的比对（页面提交的验证码和Session中保存的验证码比对）
         if (codeSeesion != null && codeSeesion.equals(code)) {
             // 表示验证无误,验证用户是否是第一次登入
@@ -76,7 +80,7 @@ public class UserController {
             // 登入成功,将用户数据写入到httpSession
             httpSession.setAttribute("user",user_temp.getId());
             //如果用户登录成功，删除Redis中缓存的验证码
-//            redisTemplate.delete(phone);
+            redisTemplate.delete(phone);
             return R.success("登入成功");
         }
 
@@ -105,11 +109,11 @@ public class UserController {
 
 //             【1】旧版本(优化前)
 //            需要将生成的验证码保存到Session
-             session.setAttribute(phone,code);
+//             session.setAttribute(phone,code);
 
 //             【2】 优化后
 //             将验证码保存到Redis中,保存时长5分钟
-//            redisTemplate.opsForValue().set(phone,code,5, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(phone,code,5, TimeUnit.MINUTES);
 
             return R.success(code);
         }
